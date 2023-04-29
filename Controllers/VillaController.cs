@@ -1,6 +1,7 @@
 ﻿using API.Datos;
 using API.Modelos;
 using API.Modelos.Dto;
+using API.Repositorio.IRepositorio;
 using AutoMapper;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.JsonPatch;
@@ -19,17 +20,20 @@ namespace API.Controllers
         private readonly ILogger<VillaController> _logger;
 
         //inyeccion de dbcontext
-        private readonly ApplicationDbContext _context;
+        //private readonly ApplicationDbContext _context;
+
+        private readonly IVillaRepositorio _villaRepo;
+
 
         //inyeccion de automapper para el mapeo de objetos 
         private readonly IMapper _mapper;
 
         //inyeccion de logger
-        public VillaController(ILogger<VillaController> logger, ApplicationDbContext context, IMapper mapper)
+        public VillaController(ILogger<VillaController> logger, IVillaRepositorio villaRepo, IMapper mapper)
         {
             //inicializamos la variable que hace referencia al servicio de logger
             _logger = logger;
-            _context = context;
+            _villaRepo = villaRepo;
             _mapper = mapper;
 
         }
@@ -49,7 +53,10 @@ namespace API.Controllers
             _logger.LogInformation("Obtener las villas");
 
             //lista para utilizar el mapper
-            IEnumerable<Villa> villaList = await _context.Villas.ToListAsync();
+            //IEnumerable<Villa> villaList = await _context.Villas.ToListAsync();
+
+            IEnumerable<Villa> villaList = await _villaRepo.ObtenerTodos();
+
 
             //aplicamos el mapeo con la variable _mapper retornando un IEnumerable de tipo villaDto con el source de villaList
             return Ok(_mapper.Map<IEnumerable<VIllaDto>>(villaList));
@@ -91,7 +98,10 @@ namespace API.Controllers
             //var villa = VillaStore.villaList.FirstOrDefault(v => v.Id == id);
 
             //traemos un solo registro de las villas almacenadas en la db en base al id
-            var villa = await _context.Villas.FirstOrDefaultAsync(x => x.Id == id);
+            //var villa = await _context.Villas.FirstOrDefaultAsync(x => x.Id == id);
+
+            var villa = await _villaRepo.Obtener(x => x.Id == id);
+
 
             //validacion para retornar codigo 404 notfound
             if (villa==null)
@@ -124,7 +134,7 @@ namespace API.Controllers
 
             //validacion personalizada
             //primer registro que encuentre donde el nombre estando en minuscula o mayuscula es igual a lo que se esta recibiendo como parametro en villaDto.nombre es diferente de null entonces encontro un registro que coincide con el registro que se esta intentando ingresar
-            if(await _context.Villas.FirstOrDefaultAsync(v=>v.Nombre.ToLower() == createDto.Nombre.ToLower()) != null)
+            if(await _villaRepo.Obtener(v=>v.Nombre.ToLower() == createDto.Nombre.ToLower()) != null)
             {
                 //ModelState personalizado con AddModelError con dos parametros "nombre de la validacion", "mensaje que se quiere mostrar"
                 ModelState.AddModelError("NombreExiste","La villa con ese nombre ya existe");
@@ -162,10 +172,10 @@ namespace API.Controllers
             //};
 
             //agregamos el registro a la DB
-            await _context.Villas.AddAsync(modelo);
+            await _villaRepo.Crear(modelo);
 
             //guardamos los cambios
-            await _context.SaveChangesAsync();
+            //await _context.SaveChangesAsync();
 
             //retornamos el registro nuevo mediante la ruta
             //indicamos la ruta de creacion "getbyid" mediante el nombre de la ruta, el id y el modelo completo
@@ -184,7 +194,7 @@ namespace API.Controllers
                 return BadRequest();
             }
 
-            var villa = await _context.Villas.FirstOrDefaultAsync(v => v.Id == id);
+            var villa = await _villaRepo.Obtener(v => v.Id == id);
 
             if(villa==null)
             {
@@ -195,10 +205,10 @@ namespace API.Controllers
             //VillaStore.villaList.Remove(villa);
 
             //eliminamos de la db por medio del _context y el metodo remove
-            _context.Remove(villa);
+            _villaRepo.Remover(villa);
 
             //guardamos cambios
-            await _context.SaveChangesAsync();
+            //await _context.SaveChangesAsync();
 
             //retornamos nocontent al ser delete
             return NoContent();
@@ -238,10 +248,10 @@ namespace API.Controllers
             //};
 
             //actualizamos el modelo
-            _context.Update(modelo);
+            _villaRepo.Actualizar(modelo);
 
             //guardamos cambios
-            await _context.SaveChangesAsync();
+            //await _context.SaveChangesAsync();
 
             return NoContent();
 
@@ -263,7 +273,10 @@ namespace API.Controllers
 
             //variable villa para capturar el registro que se va a modificar en base al id que se esta enviando
             //AsNoTracking para consultar un registro del dbcontext y no se trackee 
-            var villa = await _context.Villas.AsNoTracking().FirstOrDefaultAsync(v => v.Id == id);
+            //var villa = await _context.Villas.AsNoTracking().FirstOrDefaultAsync(v => v.Id == id);
+
+            var villa = await _villaRepo.Obtener(v => v.Id == id, tracked:false);
+
 
             VIllaUpdateDto villaDto = _mapper.Map<VIllaUpdateDto>(villa);
 
@@ -312,10 +325,10 @@ namespace API.Controllers
             //};
 
             //actualizamos la propiedad enviando al modelo de tipo villa
-            _context.Villas.Update(modelo);
+            _villaRepo.Actualizar(modelo);
 
             //guardamos cambios
-            await _context.SaveChangesAsync();
+            //await _villaRepo.SaveChangesAsync();
 
             return NoContent();
 

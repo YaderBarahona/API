@@ -1,5 +1,6 @@
 using API;
 using API.Datos;
+using API.Repositorio.IRepositorio;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -19,6 +20,9 @@ builder.Services.AddDbContext<ApplicationDbContext>(option =>
 
 //servicio del mapeo de objetos e indicamos la clase que realiza el mapeo
 builder.Services.AddAutoMapper(typeof(MappingConfig));
+
+//servicio con alcance de crearse una vez por solicitud y luego se destruyen
+builder.Services.AddScoped<IVillaRepositorio, VillaRepositorio>();
 
 var app = builder.Build();
 
